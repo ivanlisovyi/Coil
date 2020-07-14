@@ -7,16 +7,14 @@
 
 import Darwin.os.lock
 
-public typealias ContainerProtocol = Containing & Resolving
-
-public final class Container: ContainerProtocol {
-    private let parent: Resolving?
+public final class Container: Register, Resolver {
+    private let parent: Resolver?
     
     private var stores = [Scope: Store]()
     
     private var lock = os_unfair_lock()
     
-    public init(_ parent: Resolving? = nil) {
+    public init(_ parent: Resolver? = nil) {
         self.parent = parent
     }
     

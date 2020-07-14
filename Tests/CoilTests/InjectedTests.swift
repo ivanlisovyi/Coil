@@ -8,8 +8,8 @@
 import XCTest
 @testable import Coil
 
-final class InjectedTests: XCTestCase, Resolver {
-    var resolver: Resolving {
+final class InjectedTests: XCTestCase, ResolverProvider {
+    var resolver: Resolver {
         return Container()
             .register(SimpleProtocol.self) { _ in SimpleService() }
             .register(AnotherSimpleService.self) { _ in AnotherSimpleService() }
@@ -21,7 +21,7 @@ final class InjectedTests: XCTestCase, Resolver {
     func testInjection() {
         XCTAssertNotNil(simpleService)
         XCTAssertEqual(simpleService.value, "Value")
-        
+
         XCTAssertNotNil(anotherService)
         XCTAssertEqual(anotherService.value, "AnotherValue")
     }
