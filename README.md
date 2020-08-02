@@ -32,7 +32,7 @@ final class Container: Resolver {
             .register(FirstServiceProtocol.self, factory: { resolver in
                 FirstService(resolver)
             })
-            .register(SecondService.self. factory: { _ in 
+            .register(SecondService.self, factory: { _ in 
                 SecondService()
             })
     }
