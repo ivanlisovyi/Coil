@@ -6,5 +6,5 @@
 //
 
 public protocol ResolverProvider {
-    var resolver: Resolver { get }
+  var resolver: Resolver { get }
 }

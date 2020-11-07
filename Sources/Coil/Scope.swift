@@ -6,6 +6,6 @@
 //
 
 public enum Scope: Hashable {
-    case transient
-    case container
+  case transient
+  case container
 }
