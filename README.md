@@ -5,12 +5,14 @@
 
 **Coil** heavily relies on the *property wrappers enclosing type access* feature to automatically inject class dependencies from a provided dependency container. 
 
+> Note: @Injected property wrapper could be used inside structs but requires to provide container explicitly, e.g. @Injected(resolver: someContainer) var someValue: SomeValueType
+
 ## Usage 
 
 ### Simple Example 
 ```swift
 let container = Container()
-                .register(SimpleProtocol.self) { _ in SimpleService() }
+    .register(Dependency { _ in SimpleService() })
 
 final class TestClass: ResolverProvider {
     var resolver: Resolver { container }
@@ -30,15 +32,15 @@ final class Container: Resolver {
 
     init() {
         `internal` = Coil.Container()
-            .register(FirstServiceProtocol.self, factory: { resolver in
+            .register(Dependency { resolver in
                 FirstService(resolver)
             })
-            .register(SecondService.self, factory: { _ in 
+            .register(Dependency { _ in 
                 SecondService()
             })
     }
 
-    func resolve<Service>(_ type: Service.Type) -> Service? {
+    func resolve<Value>(_ type: Value.Type) -> Value? {
         `internal`.resolve(type)
     }
 }
@@ -62,6 +64,46 @@ final class TestClass {
 }
 
 extension TestClass: ResolverProvider {} 
+```
+
+### Create Container using Swift's Function Builders feature
+```swift
+let container = Container {
+    Dependency { _ in First() } // Register dependency of `First` type in container 
+    Dependency { resolver in Second(resolver) as SecondServiceProtocol } // Register dependency of `Second` type as `SecondServiceProtocol` in container
+}
+
+final class TestClass: ResolverProvider {
+    @Injected var first: First
+    @Injected var second: SecondServiceProtocol
+    
+    let resolver: Resolver 
+    
+    init(resolver: Resolver = container) {
+        self.resolver = resolver
+    }
+    
+    func doSomething() {
+        print(first.value)
+        second.doSomething()
+    }
+}
+```
+
+### Combine multiple Containers 
+```swift
+let firstContainer = Container {
+    Dependency { _ in First() } // Register dependency of `First` type in container 
+}
+
+let secondContainer = Container {
+    Dependency { resolver in Second(resolver) as SecondServiceProtocol } // Register dependency of `Second` type as `SecondServiceProtocol` in container
+}
+
+let combined = Container.combine(
+    firstContainer,
+    secondContainer
+)
 ```
 
 ## Installation
