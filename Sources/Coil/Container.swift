@@ -7,17 +7,22 @@
 
 import Darwin.os.lock
 
-public final class Container: Register, Resolver {
+open class Container: Register, Resolver {
   private let parent: Resolver?
-  
-  private var stores = [Scope: Store]()
+  private var stores: [Scope: Store]
   
   private var lock = os_unfair_lock()
   
   public init(_ parent: Resolver? = nil) {
     self.parent = parent
+    self.stores = [:]
   }
-  
+
+  private init(stores: [Scope: Store]) {
+    self.parent = nil
+    self.stores = stores
+  }
+
   public func register<Service>(
     _ type: Service.Type,
     scope: Scope = .container,
@@ -43,24 +48,38 @@ public final class Container: Register, Resolver {
     
     return parent?.resolve(type)
   }
-  
-  // MARK: - Private
-  
+}
+
+extension Container {
+  public static func combine(_ containers: Container...) -> Container {
+    Container(
+      stores: containers
+        .map(\.stores)
+        .reduce(into: [Scope: Store]()) { acc, value in
+          acc.merge(value) { $0.combine($1) }
+        }
+    )
+  }
+}
+
+// MARK: - Private
+
+private extension Container {
   private func store(for scope: Scope) -> Store {
+    defer { os_unfair_lock_unlock(&lock) }
+
+    os_unfair_lock_lock(&lock)
+
     if let store = stores[scope] {
       return store
     }
-    
-    os_unfair_lock_lock(&lock)
-    
+
     let store = makeStore(scope)
     stores[scope] = store
-    
-    os_unfair_lock_unlock(&lock)
-    
+
     return store
   }
-  
+
   private func makeStore(_ scope: Scope) -> Store {
     switch scope {
     case .container:

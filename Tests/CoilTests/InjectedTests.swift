@@ -34,7 +34,8 @@ final class InjectedTests: XCTestCase, ResolverProvider {
   }
   
   static var allTests = [
-    ("testInjection", testInjection)
+    ("testInjection", testInjection),
+    ("testInjectionInsideStructs", testInjectionInsideStructs)
   ]
 }
 

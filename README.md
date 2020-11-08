@@ -1,4 +1,5 @@
 # Coil
+![CI](https://github.com/ivanlisovyi/Coil/workflows/CI/badge.svg)
 
 `Coil` is a library that provides a way to inject class dependencies using Swift 5.1 feature called [Property Wrappers](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md)
 
@@ -67,7 +68,7 @@ extension TestClass: ResolverProvider {}
 You can add Coil to your project using Swift Package Manager. Add the following line to the `dependencies` inside your `Package.swift`:
 ```swift
 dependencies: [
-    .package(url: "https://github.com/ivanlisovyi/Coil", .branch("master")),
+    .package(url: "https://github.com/ivanlisovyi/Coil", .upToNextMajor(from: "1.0.0"),
     // other dependencies here 
 ],
 ```

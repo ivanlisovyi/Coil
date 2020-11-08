@@ -96,13 +96,71 @@ final class ContainerTests: XCTestCase {
     XCTAssertNil(resolved)
   }
 
+  func testCombineContainers() {
+    // Given
+    final class DifferentService {
+      let value = "DifferentValue"
+    }
+
+    let first = Container()
+      .register(SimpleProtocol.self, factory: SimpleService())
+
+    let second = Container()
+      .register(AnotherSimpleService.self, scope: .transient, factory: AnotherSimpleService())
+
+    let third = Container()
+      .register(DifferentService.self, factory: DifferentService())
+
+    let container = Container.combine(first, second, third)
+
+    // When
+    let firstResolved = container.resolve(SimpleProtocol.self)
+    let secondResolved = container.resolve(AnotherSimpleService.self)
+    let thirdResolved = container.resolve(DifferentService.self)
+
+    // Then
+    XCTAssertNotNil(firstResolved)
+    XCTAssertNotNil(secondResolved)
+    XCTAssertNotNil(thirdResolved)
+  }
+
+  func testCombineContainersWithServiceOfTheSameType() {
+    // Given
+    final class FirstService {
+      let value: Int
+
+      init(value: Int) {
+        self.value = value
+      }
+    }
+
+    let expectedValue = 2
+
+    let first = Container()
+      .register(FirstService.self, factory: FirstService(value: 1))
+
+    let second = Container()
+      .register(FirstService.self, factory: FirstService(value: 2))
+
+    let container = Container.combine(first, second)
+
+    // When
+    let resolved = container.resolve(FirstService.self)
+
+    // Then
+    XCTAssertNotNil(resolved)
+    XCTAssertEqual(resolved?.value, expectedValue)
+  }
+
   static var allTests = [
     ("testResolveServiceRegisteredService", testResolveRegisteredService),
     ("testResolveMultipleRegisteredServices", testResolveMultipleRegisteredServices),
     ("testResolveWithParentContainer", testResolveWithParentContainer),
     ("testResolveWithContainerScope", testResolveWithContainerScope),
     ("testResolveWithTransientScope", testResolveWithTransientScope),
-    ("testResolveWithNonRegisteredService", testResolveWithNonRegisteredService)
+    ("testResolveWithNonRegisteredService", testResolveWithNonRegisteredService),
+    ("testCombineContainers", testCombineContainers),
+    ("testCombineContainersWithServiceOfTheSameType", testCombineContainersWithServiceOfTheSameType)
   ]
 }
 
