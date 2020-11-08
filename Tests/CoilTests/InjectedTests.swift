@@ -1,6 +1,6 @@
 //
 //  InjectedTests.swift
-//  
+//
 //
 //  Created by Ivan Lisovyi on 16.03.20.
 //
@@ -10,18 +10,19 @@ import XCTest
 
 final class InjectedTests: XCTestCase, ResolverProvider {
   var resolver: Resolver {
-    return Container()
-      .register(SimpleProtocol.self) { _ in SimpleService() }
-      .register(AnotherSimpleService.self) { _ in AnotherSimpleService() }
+    Container {
+      Dependency { _ in SimpleService() as SimpleProtocol }
+      Dependency { _ in AnotherSimpleService() }
+    }
   }
-  
+
   @Injected fileprivate var simpleService: SimpleProtocol
   @Injected fileprivate var anotherService: AnotherSimpleService
-  
+
   func testInjection() {
     XCTAssertNotNil(simpleService)
     XCTAssertEqual(simpleService.value, "Value")
-    
+
     XCTAssertNotNil(anotherService)
     XCTAssertEqual(anotherService.value, "AnotherValue")
   }
@@ -32,7 +33,7 @@ final class InjectedTests: XCTestCase, ResolverProvider {
     XCTAssertNotNil(structExample.simpleService)
     XCTAssertEqual(structExample.simpleService.value, "Value")
   }
-  
+
   static var allTests = [
     ("testInjection", testInjection),
     ("testInjectionInsideStructs", testInjectionInsideStructs)
@@ -41,7 +42,9 @@ final class InjectedTests: XCTestCase, ResolverProvider {
 
 private struct StructExample {
   static var resolver: Resolver {
-    Container().register(SimpleProtocol.self, factory: { _ in SimpleService() })
+    Container {
+      Dependency { _ in SimpleService() as SimpleProtocol }
+    }
   }
 
   @Injected(resolver: resolver) var simpleService: SimpleProtocol

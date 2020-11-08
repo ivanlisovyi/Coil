@@ -6,9 +6,6 @@
 //
 
 public protocol Register {
-  func register<Service>(
-    _ type: Service.Type,
-    scope: Scope,
-    factory: @escaping Factory<Service>
-  ) -> Self
+  @discardableResult
+  func register(_ dependency: Dependency) -> Self
 }

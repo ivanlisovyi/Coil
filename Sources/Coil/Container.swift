@@ -8,10 +8,27 @@
 import Darwin.os.lock
 
 open class Container: Register, Resolver {
+  @_functionBuilder
+  struct ContainerBuilder {
+    static func buildBlock(_ dependency: Dependency) -> [Dependency] { [dependency] }
+    static func buildBlock(_ dependencies: Dependency...) -> [Dependency] { dependencies }
+    static func buildEither(first dependency: Dependency) -> [Dependency] { [dependency] }
+    static func buildEither(second dependency: Dependency) -> [Dependency] { [dependency] }
+  }
+
   private let parent: Resolver?
   private var stores: [Scope: Store]
   
   private var lock = os_unfair_lock()
+
+  public convenience init(
+    parent: Resolver? = nil,
+    @ContainerBuilder _ dependencies: () -> [Dependency]
+  ) {
+    self.init(parent)
+
+    dependencies().forEach { register($0) }
+  }
   
   public init(_ parent: Resolver? = nil) {
     self.parent = parent
@@ -23,30 +40,23 @@ open class Container: Register, Resolver {
     self.stores = stores
   }
 
-  public func register<Service>(
-    _ type: Service.Type,
-    scope: Scope = .container,
-    factory: @escaping Factory<Service>
-  ) -> Self {
-    register(type, scope: scope, factory: factory(self))
-  }
-
-  public func register<Service>(
-    _ type: Service.Type,
-    scope: Scope = .container,
-    factory: @autoclosure @escaping () -> Service
-  ) -> Self {
-    store(for: scope).set(factory, for: type)
+  @discardableResult
+  public func register(_ dependency: Dependency) -> Self {
+    store(for: dependency.scope).set(dependency)
 
     return self
   }
   
   public func resolve<Service>(_ type: Service.Type) -> Service? {
-    if let store = stores.values.first(where: { $0.get(for: type) != nil })  {
-      return store.get(for: type)
+    var found: Service?
+    for store in stores.values {
+      if let value = store.get(for: type, resolver: self) {
+        found = value
+        break
+      }
     }
-    
-    return parent?.resolve(type)
+
+    return found ?? parent?.resolve(type)
   }
 }
 

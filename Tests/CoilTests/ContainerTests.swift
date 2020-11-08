@@ -12,7 +12,7 @@ final class ContainerTests: XCTestCase {
   func testResolveRegisteredService() {
     // Given
     let container = Container()
-      .register(SimpleProtocol.self) { _ in SimpleService() }
+      .register(Dependency { _ in SimpleService() as SimpleProtocol })
 
     // When
     let resolved = container.resolve(SimpleProtocol.self)
@@ -24,8 +24,8 @@ final class ContainerTests: XCTestCase {
   func testResolveMultipleRegisteredServices() {
     // Given
     let container = Container()
-      .register(SimpleProtocol.self, factory: SimpleService())
-      .register(AnotherSimpleService.self, factory: AnotherSimpleService())
+      .register(Dependency { _ in SimpleService() as SimpleProtocol })
+      .register(Dependency { _ in AnotherSimpleService() })
 
     // When
     let first = container.resolve(SimpleProtocol.self)
@@ -39,10 +39,10 @@ final class ContainerTests: XCTestCase {
   func testResolveWithParentContainer() {
     // Given
     let parent = Container()
-      .register(SimpleProtocol.self, factory: SimpleService())
+      .register(Dependency { _ in SimpleService() as SimpleProtocol })
 
     let container = Container(parent)
-      .register(AnotherSimpleService.self, factory: AnotherSimpleService())
+      .register(Dependency { _ in AnotherSimpleService() })
 
     // When
     let first = container.resolve(SimpleProtocol.self)
@@ -56,7 +56,7 @@ final class ContainerTests: XCTestCase {
   func testResolveWithContainerScope() {
     // Given
     let container = Container()
-      .register(SimpleProtocol.self, factory: SimpleService())
+      .register(Dependency { _ in SimpleService() as SimpleProtocol })
 
     // When
     let first = container.resolve(SimpleProtocol.self)
@@ -72,7 +72,7 @@ final class ContainerTests: XCTestCase {
   func testResolveWithTransientScope() {
     // Given
     let container = Container()
-      .register(SimpleProtocol.self, scope: .transient, factory: SimpleService())
+      .register(Dependency(scope: .transient) { _ in SimpleService() as SimpleProtocol })
 
     // When
     let first = container.resolve(SimpleProtocol.self)
@@ -103,13 +103,13 @@ final class ContainerTests: XCTestCase {
     }
 
     let first = Container()
-      .register(SimpleProtocol.self, factory: SimpleService())
+      .register(Dependency { _ in SimpleService() as SimpleProtocol })
 
     let second = Container()
-      .register(AnotherSimpleService.self, scope: .transient, factory: AnotherSimpleService())
+      .register(Dependency(scope: .transient) { _ in AnotherSimpleService() })
 
     let third = Container()
-      .register(DifferentService.self, factory: DifferentService())
+      .register(Dependency { _ in DifferentService() })
 
     let container = Container.combine(first, second, third)
 
@@ -137,10 +137,10 @@ final class ContainerTests: XCTestCase {
     let expectedValue = 2
 
     let first = Container()
-      .register(FirstService.self, factory: FirstService(value: 1))
+      .register(Dependency { _ in FirstService(value: 1) })
 
     let second = Container()
-      .register(FirstService.self, factory: FirstService(value: 2))
+      .register(Dependency { _ in FirstService(value: 2) })
 
     let container = Container.combine(first, second)
 

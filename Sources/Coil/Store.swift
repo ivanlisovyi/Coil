@@ -9,82 +9,83 @@ import Foundation
 import Darwin.os.lock
 
 protocol Store: AnyObject {
-  var factories: [ObjectIdentifier: () -> Any] { get }
+  var dependencies: [ObjectIdentifier: Dependency] { get }
 
-  func get<Service>(for type: Service.Type) -> Service?
-  func set<Service>(_ factory: @escaping () -> Service, for type: Service.Type)
+  func get<Value>(for type: Value.Type, resolver: Resolver) -> Value?
+  func set(_ dependency: Dependency)
 
   func combine(_ other: Store) -> Store
 }
 
 final class ContainerStore: Store {
-  var factories: [ObjectIdentifier: () -> Any]
-  var instances: [ObjectIdentifier: Any]
+  var dependencies: [ObjectIdentifier: Dependency]
+  var resolvedInstances: [ObjectIdentifier: Any]
 
   private var lock = os_unfair_lock()
 
   init(
-    factories: [ObjectIdentifier: () -> Any] = [:],
-    instances: [ObjectIdentifier: Any] = [:]
+    dependencies: [ObjectIdentifier: Dependency] = [:],
+    resolvedInstances: [ObjectIdentifier: Any] = [:]
   ) {
-    self.factories = factories
-    self.instances = instances
+    self.dependencies = dependencies
+    self.resolvedInstances = resolvedInstances
   }
 
-  func get<Service>(for type: Service.Type) -> Service? {
+  func get<Value>(for type: Value.Type, resolver: Resolver) -> Value? {
     defer { os_unfair_lock_unlock(&lock) }
 
     os_unfair_lock_lock(&lock)
 
     let key = ObjectIdentifier(type)
-    if let service = instances[key] as? Service {
-      return service
+    if let value = resolvedInstances[key] as? Value {
+      return value
     }
 
-    guard let factory = factories[key], let service = factory() as? Service else {
+    guard let dependency = dependencies[key], let value = dependency.resolve(resolver) as? Value else {
       return nil
     }
 
-    instances[key] = service
+    resolvedInstances[key] = value
 
-    return service
+    return value
   }
 
-  func set<Service>(_ factory: @escaping () -> Service, for type: Service.Type) {
+  func set(_ dependency: Dependency) {
     os_unfair_lock_lock(&lock)
-    factories[ObjectIdentifier(type)] = factory
+    dependencies[dependency.id] = dependency
     os_unfair_lock_unlock(&lock)
   }
 
   func combine(_ other: Store) -> Store {
-    ContainerStore(factories: factories.merging(other.factories) { $1 })
+    ContainerStore(dependencies: dependencies.merging(other.dependencies) { $1 })
   }
 }
 
 final class TransientStore: Store {
-  var factories: [ObjectIdentifier: () -> Any]
+  var dependencies: [ObjectIdentifier: Dependency]
 
   private var lock = os_unfair_lock()
 
-  init(factories: [ObjectIdentifier: () -> Any] = [:]) {
-    self.factories = factories
+  init(dependencies: [ObjectIdentifier: Dependency] = [:]) {
+    self.dependencies = dependencies
   }
 
-  func get<Service>(for type: Service.Type) -> Service? {
-    guard let factory = factories[ObjectIdentifier(type)], let service = factory() as? Service else {
+  func get<Value>(for type: Value.Type, resolver: Resolver) -> Value? {
+    guard let dependency = dependencies[ObjectIdentifier(type)],
+          let value = dependency.resolve(resolver) as? Value else {
       return nil
     }
 
-    return service
+    return value
   }
 
-  public func set<Service>(_ factory: @escaping () -> Service, for type: Service.Type) {
+  public func set(_ dependency: Dependency) {
     os_unfair_lock_lock(&lock)
-    factories[ObjectIdentifier(type)] = factory
+    dependencies[dependency.id] = dependency
     os_unfair_lock_unlock(&lock)
   }
 
   func combine(_ other: Store) -> Store {
-    TransientStore(factories: factories.merging(other.factories) { $1 })
+    TransientStore(dependencies: dependencies.merging(other.dependencies) { $1 })
   }
 }
