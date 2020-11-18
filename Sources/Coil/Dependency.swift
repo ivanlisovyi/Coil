@@ -13,7 +13,7 @@ public struct Dependency: Identifiable {
 
   public let id: ObjectIdentifier
 
-  init<Value>(scope: Scope = .container, resolve: @escaping (Resolver) -> Value) {
+  public init<Value>(scope: Scope = .container, resolve: @escaping (Resolver) -> Value) {
     self.id = ObjectIdentifier(Value.self)
     self.scope = scope
     self.resolve = resolve
