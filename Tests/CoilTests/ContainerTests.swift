@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import Coil
+import Coil
 
 final class ContainerTests: XCTestCase {
   func testResolveRegisteredService() {

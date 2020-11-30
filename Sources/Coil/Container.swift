@@ -9,11 +9,11 @@ import Darwin.os.lock
 
 open class Container: Register, Resolver {
   @_functionBuilder
-  struct ContainerBuilder {
-    static func buildBlock(_ dependency: Dependency) -> [Dependency] { [dependency] }
-    static func buildBlock(_ dependencies: Dependency...) -> [Dependency] { dependencies }
-    static func buildEither(first dependency: Dependency) -> [Dependency] { [dependency] }
-    static func buildEither(second dependency: Dependency) -> [Dependency] { [dependency] }
+  public struct ContainerBuilder {
+    public static func buildBlock(_ dependency: Dependency) -> [Dependency] { [dependency] }
+    public static func buildBlock(_ dependencies: Dependency...) -> [Dependency] { dependencies }
+    public static func buildEither(first dependency: Dependency) -> [Dependency] { [dependency] }
+    public static func buildEither(second dependency: Dependency) -> [Dependency] { [dependency] }
   }
 
   private let parent: Resolver?

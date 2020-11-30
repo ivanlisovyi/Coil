@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import Coil
+import Coil
 
 final class InjectedTests: XCTestCase, ResolverProvider {
   var resolver: Resolver {
