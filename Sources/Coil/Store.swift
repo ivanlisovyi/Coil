@@ -23,6 +23,8 @@ final class ContainerStore: Store {
 
   private var lock = os_unfair_lock()
 
+  private let queue = DispatchQueue(label: "com.coil.container.store.queue", attributes: .concurrent)
+
   init(
     dependencies: [ObjectIdentifier: Dependency] = [:],
     resolvedInstances: [ObjectIdentifier: Any] = [:]
@@ -32,28 +34,28 @@ final class ContainerStore: Store {
   }
 
   func get<Value>(for type: Value.Type, resolver: Resolver) -> Value? {
-    defer { os_unfair_lock_unlock(&lock) }
+    var resolvedValue: Value?
 
-    os_unfair_lock_lock(&lock)
+    queue.sync {
+      let key = ObjectIdentifier(type)
+      if let value = resolvedInstances[key] as? Value {
+        resolvedValue = value
+      } else if let dependency = dependencies[key], let value = dependency.resolve(resolver) as? Value {
+        queue.async(flags: .barrier) {
+          self.resolvedInstances[key] = value
+        }
 
-    let key = ObjectIdentifier(type)
-    if let value = resolvedInstances[key] as? Value {
-      return value
+        resolvedValue = value
+      }
     }
-
-    guard let dependency = dependencies[key], let value = dependency.resolve(resolver) as? Value else {
-      return nil
-    }
-
-    resolvedInstances[key] = value
-
-    return value
+    
+    return resolvedValue
   }
 
   func set(_ dependency: Dependency) {
-    os_unfair_lock_lock(&lock)
-    dependencies[dependency.id] = dependency
-    os_unfair_lock_unlock(&lock)
+    queue.async(flags: .barrier) {
+      self.dependencies[dependency.id] = dependency
+    }
   }
 
   func combine(_ other: Store) -> Store {
@@ -64,25 +66,29 @@ final class ContainerStore: Store {
 final class TransientStore: Store {
   var dependencies: [ObjectIdentifier: Dependency]
 
-  private var lock = os_unfair_lock()
+  private let queue = DispatchQueue(label: "com.coil.transient.store.queue", attributes: .concurrent)
 
   init(dependencies: [ObjectIdentifier: Dependency] = [:]) {
     self.dependencies = dependencies
   }
 
   func get<Value>(for type: Value.Type, resolver: Resolver) -> Value? {
-    guard let dependency = dependencies[ObjectIdentifier(type)],
-          let value = dependency.resolve(resolver) as? Value else {
-      return nil
+    var resolvedValue: Value?
+
+    queue.sync {
+      let key = ObjectIdentifier(type)
+      if let dependency = dependencies[key], let value = dependency.resolve(resolver) as? Value {
+        resolvedValue = value
+      }
     }
 
-    return value
+    return resolvedValue
   }
 
   public func set(_ dependency: Dependency) {
-    os_unfair_lock_lock(&lock)
-    dependencies[dependency.id] = dependency
-    os_unfair_lock_unlock(&lock)
+    queue.async(flags: .barrier) {
+      self.dependencies[dependency.id] = dependency
+    }
   }
 
   func combine(_ other: Store) -> Store {

@@ -152,6 +152,36 @@ final class ContainerTests: XCTestCase {
     XCTAssertEqual(resolved?.value, expectedValue)
   }
 
+  func testResolveDependencyInAnotherDependencyRegisterClosure() {
+    // Given
+    final class DependentService {
+      let value: String
+
+      init(value: String) {
+        self.value = value
+      }
+    }
+
+    let simpleService =  SimpleService()
+
+    let container = Container()
+      .register(Dependency { _ in simpleService })
+      .register(Dependency { (resolver) -> DependentService in
+        let simpleService = resolver.resolve(SimpleService.self)
+        guard let value = simpleService?.value else {
+          fatalError("SimpleService value shall be available")
+        }
+        return DependentService(value: value)
+      })
+
+    // When
+    let resolved = container.resolve(DependentService.self)
+
+    // Then
+    XCTAssertNotNil(resolved)
+    XCTAssertEqual(resolved?.value, simpleService.value)
+  }
+
   static var allTests = [
     ("testResolveServiceRegisteredService", testResolveRegisteredService),
     ("testResolveMultipleRegisteredServices", testResolveMultipleRegisteredServices),
