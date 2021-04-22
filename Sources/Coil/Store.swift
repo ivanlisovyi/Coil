@@ -59,7 +59,9 @@ final class ContainerStore: Store {
   }
 
   func combine(_ other: Store) -> Store {
-    ContainerStore(dependencies: dependencies.merging(other.dependencies) { $1 })
+    queue.sync {
+      ContainerStore(dependencies: dependencies.merging(other.dependencies) { $1 })
+    }
   }
 }
 
@@ -92,6 +94,8 @@ final class TransientStore: Store {
   }
 
   func combine(_ other: Store) -> Store {
-    TransientStore(dependencies: dependencies.merging(other.dependencies) { $1 })
+    queue.sync {
+      TransientStore(dependencies: dependencies.merging(other.dependencies) { $1 })
+    }
   }
 }

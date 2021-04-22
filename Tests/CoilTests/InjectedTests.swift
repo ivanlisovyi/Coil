@@ -27,6 +27,16 @@ final class InjectedTests: XCTestCase, ResolverProvider {
     XCTAssertEqual(anotherService.value, "AnotherValue")
   }
 
+  func testProjectedValueMutation() {
+    XCTAssertNotNil(simpleService)
+    XCTAssertEqual(simpleService.value, "Value")
+
+    let newValue = "2"
+    $simpleService?.value = newValue
+
+    XCTAssertEqual(simpleService.value, newValue)
+  }
+
   func testInjectionInsideStructs() {
     let structExample = StructExample()
 
@@ -52,13 +62,13 @@ private struct StructExample {
 
 
 private protocol SimpleProtocol: AnyObject {
-  var value: String { get }
+  var value: String { get set }
 }
 
 private final class SimpleService: SimpleProtocol {
-  let value = "Value"
+  var value = "Value"
 }
 
 private final class AnotherSimpleService {
-  let value = "AnotherValue"
+  var value = "AnotherValue"
 }
